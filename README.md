@@ -8,7 +8,7 @@ Using it
 Download the jar file from here and put it in GitBlit's classpath:
 
 * GO: under the ``ext`` directory
-* WAR: under WEB-INF/lib
+* WAR: under ``WEB-INF/lib``
 
 The edit GitBlit's configuration like so:
 
