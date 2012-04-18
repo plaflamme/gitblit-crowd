@@ -5,7 +5,7 @@ Allows using [Atlassian Crowd](http://www.atlassian.com/software/crowd/) to auth
 
 Using it
 --------
-Download the jar file from here and put it in GitBlit's classpath:
+Download the jar file from [here](https://github.com/plaflamme/gitblit-crowd/downloads) and put it in GitBlit's classpath:
 
 * GO: under the ``ext`` directory
 * WAR: under ``WEB-INF/lib``
