@@ -29,12 +29,17 @@ SSO
 
 This is not yet implemented. Probably needs some GitBlit patches first.
 
+Why can't I add/edit users and teams from GitBlit?
+--------------------------------------------------
+
+It's currently not implemented and probably never will. When using Crowd, it's probably a better idea to manage your users and groups there and then use them in GitBlit.
+ 
 What's up with the perms.xml file?
 ----------------------------------
 
-GitBlit requires that implementations of ``IUserService`` implement both authentication and authorization. Authentication is delegated to Crowd, but authentication isn't because Crowd doesn't know about GitBlit's repositories.
+GitBlit requires that implementations of ``IUserService`` implement both authentication and authorization. Authentication is delegated to Crowd, but authorization isn't because Crowd doesn't know about GitBlit's repositories.
 
-Thus, this extension uses an extra file to store associations between repositories and users/teams. It was easier to write my own permission storage than leverage GitBlit's classes.
+Thus, to implement authorization, this extension uses an extra file to store associations between repositories and users/teams. It was easier to write my own permission storage than leverage GitBlit's classes.
 
 What's up with the weird version number?
 ----------------------------------------
