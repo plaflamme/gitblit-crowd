@@ -1,7 +1,7 @@
 GitBlit Crowd Integration
 =========================
 
-Allows using [Atlassian Crowd](http://www.atlassian.com/software/crowd/) to authenticate users and use their groups as GitBlit teams.
+Allows using [Atlassian Crowd](http://www.atlassian.com/software/crowd/) to authenticate users and use their groups as [GitBlit](http://gitblit.com) teams.
 
 Using it
 --------
