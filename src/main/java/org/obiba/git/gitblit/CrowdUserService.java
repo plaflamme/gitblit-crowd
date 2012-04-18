@@ -10,28 +10,45 @@
 package org.obiba.git.gitblit;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.wicket.protocol.http.WebRequestCycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.atlassian.crowd.exception.ApplicationAccessDeniedException;
 import com.atlassian.crowd.exception.ApplicationPermissionException;
 import com.atlassian.crowd.exception.CrowdException;
+import com.atlassian.crowd.exception.InvalidTokenException;
+import com.atlassian.crowd.integration.http.CrowdHttpAuthenticator;
+import com.atlassian.crowd.integration.http.CrowdHttpAuthenticatorImpl;
+import com.atlassian.crowd.integration.http.util.CrowdHttpTokenHelperImpl;
+import com.atlassian.crowd.integration.http.util.CrowdHttpValidationFactorExtractorImpl;
 import com.atlassian.crowd.integration.rest.service.factory.RestCrowdClientFactory;
 import com.atlassian.crowd.model.group.Group;
 import com.atlassian.crowd.model.user.User;
 import com.atlassian.crowd.search.query.entity.restriction.NullRestrictionImpl;
+import com.atlassian.crowd.service.client.ClientProperties;
+import com.atlassian.crowd.service.client.ClientPropertiesImpl;
 import com.atlassian.crowd.service.client.CrowdClient;
 import com.gitblit.GitBlit;
 import com.gitblit.IStoredSettings;
 import com.gitblit.IUserService;
 import com.gitblit.models.TeamModel;
 import com.gitblit.models.UserModel;
+import com.gitblit.utils.StringUtils;
 
 /**
  * Implements {@code IUserService} on Crowd REST API. This implementation allows authenticating users and will use Crowd
@@ -66,10 +83,13 @@ public class CrowdUserService implements IUserService {
 
   private RepositoryPermissionsManager repoPermissions;
 
+  // Used for SSO
+  private CrowdHttpAuthenticator authenticator;
+
   @Override
   public UserModel authenticate(String username, char[] passwd) {
     try {
-      User crowdUser = client.authenticateUser(username, new String(passwd));
+      User crowdUser = doCrowdauthenticate(username, new String(passwd));
       UserModel model = makeUserModel(crowdUser.getName());
       log.info("user {} successfully authenticated", username);
       return model;
@@ -77,7 +97,7 @@ public class CrowdUserService implements IUserService {
       log.info("unable to authenticate user {}: {}", username, e.getMessage());
     } catch(ApplicationPermissionException e) {
       log.warn("unable to authenticate to crowd: {}", e.getMessage());
-    }
+    } 
     return null;
   }
 
@@ -149,37 +169,61 @@ public class CrowdUserService implements IUserService {
 
   @Override
   public void setup(IStoredSettings settings) {
-    String crowdUrl = requiredSetting(settings, "crowd.serverUrl");
-    String name = requiredSetting(settings, "crowd.applicationName");
-    String password = requiredSetting(settings, "crowd.applicationPassword");
-    File permsFile = GitBlit.getFileOrFolder(settings.getString("crowd.permFile", "perms.xml"));
-
-    log.info("crowd server url {}", crowdUrl);
-    log.info("crowd permissions file {}", permsFile.getAbsolutePath());
-
-    this.repoPermissions = new RepositoryPermissionsManager(permsFile);
-    this.client = new RestCrowdClientFactory().newInstance(crowdUrl, name, password);
-    // Populate the list of groups with administrative privileges
-    this.adminGroups.addAll(settings.getStrings("crowd.adminGroups"));
-    log.info("crowd groups with admin privileges {}", this.adminGroups);
+    File crowdFile = GitBlit.getFileOrFolder(settings.getString("crowd.properties", "crowd.properties"));
+    Properties crowdProperties = loadCrowdProperties(crowdFile);
+    if(crowdProperties != null) {
+      ClientProperties crowdClientProperties = ClientPropertiesImpl.newInstanceFromProperties(crowdProperties);
+  
+      this.client = new RestCrowdClientFactory().newInstance(crowdClientProperties);
+  
+      // SSO Necessary stuff
+      this.authenticator = new CrowdHttpAuthenticatorImpl(client, crowdClientProperties, CrowdHttpTokenHelperImpl.getInstance(CrowdHttpValidationFactorExtractorImpl.getInstance()));
+  
+      File permsFile = GitBlit.getFileOrFolder(settings.getString("crowd.permFile", "perms.xml"));
+      log.info("crowd permissions file {}", permsFile.getAbsolutePath());
+      this.repoPermissions = new RepositoryPermissionsManager(permsFile);
+  
+      // Populate the list of groups with administrative privileges
+      this.adminGroups.addAll(settings.getStrings("crowd.adminGroups"));
+      log.info("crowd groups with admin privileges {}", this.adminGroups);
+    }
   }
 
-  // Everything else is not implemented
-
   @Override
-  public UserModel authenticate(char[] arg0) {
+  public UserModel authenticate(char[] cookieValue) {
+    WebRequestCycle requestCycle = (WebRequestCycle) WebRequestCycle.get();
+    if(requestCycle != null) {
+      HttpServletRequest request = requestCycle.getWebRequest().getHttpServletRequest();
+      HttpServletResponse response = requestCycle.getWebResponse().getHttpServletResponse();
+      try {
+        // Determines if the request has a valid SSO token
+        if(authenticator.isAuthenticated(request, response)) {
+           return makeUserModel(authenticator.getUser(request).getName());
+        }
+      } catch(CrowdException e) {
+        // ignore
+      } catch (ApplicationPermissionException e) {
+        // ignore
+      } catch (InvalidTokenException e) {
+        // ignore
+      }
+    }
     return null;
   }
 
   @Override
   public boolean supportsCookies() {
-    return false;
+    // We'll use gitblit's cookie support to trigger SSO
+    return true;
   }
 
   @Override
-  public char[] getCookie(UserModel gitblitUser) {
-    return null;
+  public char[] getCookie(UserModel user) {
+    // Return some value.
+    return StringUtils.getSHA1(user.getName()).toCharArray();
   }
+
+  // Everything else is not implemented
 
   @Override
   public boolean updateTeamModel(TeamModel model) {
@@ -220,11 +264,43 @@ public class CrowdUserService implements IUserService {
   public boolean deleteUserModel(UserModel arg0) {
     return false;
   }
-
-  private String requiredSetting(IStoredSettings settings, String key) {
-    String value = settings.getString(key, null);
-    if(value == null) throw new IllegalArgumentException(key + " must be specified.");
-    return value;
+  
+  private User doCrowdauthenticate(String username, String passwd) throws CrowdException, ApplicationPermissionException {
+    WebRequestCycle requestCycle = (WebRequestCycle) WebRequestCycle.get();
+    if(requestCycle != null) {
+      // Try an SSO authentication
+      HttpServletRequest request = requestCycle.getWebRequest().getHttpServletRequest();
+      HttpServletResponse response = requestCycle.getWebResponse().getHttpServletResponse();
+      try {
+        return this.authenticator.authenticate(request, response, username, passwd);
+      } catch(InvalidTokenException e) {
+        // ignore
+      } catch(ApplicationAccessDeniedException e) {
+        // ignore
+      }
+    }
+    return client.authenticateUser(username, passwd);
+  }
+  
+  private Properties loadCrowdProperties(File crowdProperties) {
+    Properties clientProperties = new Properties();
+    FileInputStream is = null;
+    try {
+      clientProperties.load(is = new FileInputStream(crowdProperties));
+      return clientProperties;
+    } catch (FileNotFoundException e) {
+      log.error("crowd.properties file {} does not exist.", crowdProperties.getAbsolutePath());
+      return null;
+    } catch (IOException e) {
+      log.error("error reading crowd.properties file {}.", crowdProperties.getAbsolutePath());
+      throw new RuntimeException(e);
+    } finally {
+      if(is != null) {
+        try {
+          is.close();
+        } catch(IOException e) {}
+      }
+    }
   }
 
   private boolean isAdminGroup(Group g) {

@@ -1,7 +1,15 @@
 GitBlit Crowd Integration
 =========================
 
-Allows using [Atlassian Crowd](http://www.atlassian.com/software/crowd/) to authenticate users and use their groups as [GitBlit](http://gitblit.com) teams.
+Integrates [Atlassian Crowd](http://www.atlassian.com/software/crowd/) with [GitBlit](http://gitblit.com).
+
+Features
+--------
+
+* Authenticates users against Crowd
+* SSO
+* Uses Crowd groups as GitBlit teams
+* Allows defining which Crowd group(s) have GitBlit admin privileges
 
 Using it
 --------
@@ -16,18 +24,19 @@ The edit GitBlit's configuration like so:
 
 And configure it like so:
 
-	crowd.serverUrl=http://crowd.domain.com
-	crowd.applicationName=gitblit
-	crowd.applicationPassword=my-super-secret-password
-	# Optional list of groups that will have GitBlit admin privileges
-	crowd.adminGroups=administrators gitblit-administrators
-	# A file where this extension stores repository permissions
+	# Where to load crowd.propeties from. Default is crowd.properties.
+	crowd.properties=/path/to/your/crowd.properties
+	# A file where this extension stores repository permissions. Default is perms.xml.
 	crowd.permFile=perms.xml
+	# Optional list of groups that will have GitBlit admin privileges. Default is empty.
+	crowd.adminGroups=administrators gitblit-administrators
+
+Refer to [Atlassian's documentation](http://confluence.atlassian.com/display/CROWD/The+crowd.properties+File) to create the ``crowd.properties`` file. By default, the extension will look for ``crowd.properties``.
 
 SSO
 ---
 
-This is not yet implemented. Probably needs some GitBlit patches first.
+Things work except when logging out from GitBlit.
 
 Why can't I add/edit users and teams from GitBlit?
 --------------------------------------------------

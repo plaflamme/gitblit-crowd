@@ -7,7 +7,7 @@
 
   <groupId>org.obiba.git</groupId>
   <artifactId>gitblit-crowd</artifactId>
-  <version>0.9-0</version>
+  <version>0.9-1</version>
   <packaging>jar</packaging>
 
   <licenses>
@@ -32,6 +32,7 @@
     <crowd.version>2.4.0</crowd.version>
     <xstream.version>1.4.2</xstream.version>
     <slf4j.version>1.6.1</slf4j.version>
+    <wicket.version>1.4.20</wicket.version>
   </properties>
 
   <dependencies>
@@ -77,6 +78,19 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>${slf4j.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- Used to obtain the HttpServletRequest and Response during authentication. Used for SSO. -->
+    <dependency>
+      <groupId>org.apache.wicket</groupId>
+      <artifactId>wicket</artifactId>
+      <version>${wicket.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>javax.servlet</groupId>
+      <artifactId>servlet-api</artifactId>
+      <version>2.5</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>
