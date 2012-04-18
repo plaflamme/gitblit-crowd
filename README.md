@@ -10,6 +10,7 @@ Download the jar file from here and put it in GitBlit's classpath:
 * WAR: under WEB-INF/lib
 
 The edit GitBlit's configuration like so:
+
 	realm.userService=org.obiba.git.gitblit.CrowdUserService
 
 And configure it like so:
