@@ -53,4 +53,4 @@ Thus, to implement authorization, this extension uses an extra file to store ass
 What's up with the weird version number?
 ----------------------------------------
 
-We'll try to map to GitBlit versions up to the minor (x.y). Each of this extension's release within the same GitBlit minor version will have its own patch version (0.9-0, 0.9-0, 0.10-0, etc).
+We'll try to map to GitBlit versions up to the minor (x.y). Each of this extension's release within the same GitBlit minor version will have its own patch version (0.9-0, 0.9-1, 0.10-0, etc).
