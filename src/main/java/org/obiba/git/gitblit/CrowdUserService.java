@@ -31,7 +31,9 @@ import org.slf4j.LoggerFactory;
 import com.atlassian.crowd.exception.ApplicationAccessDeniedException;
 import com.atlassian.crowd.exception.ApplicationPermissionException;
 import com.atlassian.crowd.exception.CrowdException;
+import com.atlassian.crowd.exception.InvalidAuthenticationException;
 import com.atlassian.crowd.exception.InvalidTokenException;
+import com.atlassian.crowd.exception.OperationFailedException;
 import com.atlassian.crowd.integration.http.CrowdHttpAuthenticator;
 import com.atlassian.crowd.integration.http.CrowdHttpAuthenticatorImpl;
 import com.atlassian.crowd.integration.http.util.CrowdHttpTokenHelperImpl;
@@ -97,7 +99,7 @@ public class CrowdUserService implements IUserService {
       log.info("unable to authenticate user {}: {}", username, e.getMessage());
     } catch(ApplicationPermissionException e) {
       log.warn("unable to authenticate to crowd: {}", e.getMessage());
-    } 
+    }
     return null;
   }
 
@@ -173,16 +175,18 @@ public class CrowdUserService implements IUserService {
     Properties crowdProperties = loadCrowdProperties(crowdFile);
     if(crowdProperties != null) {
       ClientProperties crowdClientProperties = ClientPropertiesImpl.newInstanceFromProperties(crowdProperties);
-  
+
       this.client = new RestCrowdClientFactory().newInstance(crowdClientProperties);
-  
+
       // SSO Necessary stuff
-      this.authenticator = new CrowdHttpAuthenticatorImpl(client, crowdClientProperties, CrowdHttpTokenHelperImpl.getInstance(CrowdHttpValidationFactorExtractorImpl.getInstance()));
-  
+      this.authenticator =
+          new CrowdHttpAuthenticatorImpl(client, crowdClientProperties,
+              CrowdHttpTokenHelperImpl.getInstance(CrowdHttpValidationFactorExtractorImpl.getInstance()));
+
       File permsFile = GitBlit.getFileOrFolder(settings.getString("crowd.permFile", "perms.xml"));
       log.info("crowd permissions file {}", permsFile.getAbsolutePath());
       this.repoPermissions = new RepositoryPermissionsManager(permsFile);
-  
+
       // Populate the list of groups with administrative privileges
       this.adminGroups.addAll(settings.getStrings("crowd.adminGroups"));
       log.info("crowd groups with admin privileges {}", this.adminGroups);
@@ -198,13 +202,13 @@ public class CrowdUserService implements IUserService {
       try {
         // Determines if the request has a valid SSO token
         if(authenticator.isAuthenticated(request, response)) {
-           return makeUserModel(authenticator.getUser(request).getName());
+          return makeUserModel(authenticator.getUser(request).getName());
         }
       } catch(CrowdException e) {
         // ignore
-      } catch (ApplicationPermissionException e) {
+      } catch(ApplicationPermissionException e) {
         // ignore
-      } catch (InvalidTokenException e) {
+      } catch(InvalidTokenException e) {
         // ignore
       }
     }
@@ -213,14 +217,38 @@ public class CrowdUserService implements IUserService {
 
   @Override
   public boolean supportsCookies() {
-    // We'll use gitblit's cookie support to trigger SSO
     return true;
+  }
+
+  @Override
+  public boolean supportsCredentialChanges() {
+    return false;
+  }
+
+  @Override
+  public boolean supportsDisplayNameChanges() {
+    return false;
+  }
+
+  @Override
+  public boolean supportsEmailAddressChanges() {
+    return false;
+  }
+
+  @Override
+  public boolean supportsTeamMembershipChanges() {
+    return false;
   }
 
   @Override
   public char[] getCookie(UserModel user) {
     // Return some value.
     return StringUtils.getSHA1(user.getName()).toCharArray();
+  }
+  
+  @Override
+  public void logout(UserModel user) {
+    doCrowdLogout();
   }
 
   // Everything else is not implemented
@@ -264,8 +292,9 @@ public class CrowdUserService implements IUserService {
   public boolean deleteUserModel(UserModel arg0) {
     return false;
   }
-  
-  private User doCrowdauthenticate(String username, String passwd) throws CrowdException, ApplicationPermissionException {
+
+  private User doCrowdauthenticate(String username, String passwd) throws CrowdException,
+      ApplicationPermissionException {
     WebRequestCycle requestCycle = (WebRequestCycle) WebRequestCycle.get();
     if(requestCycle != null) {
       // Try an SSO authentication
@@ -282,23 +311,42 @@ public class CrowdUserService implements IUserService {
     return client.authenticateUser(username, passwd);
   }
   
+  private void doCrowdLogout() {
+    WebRequestCycle requestCycle = (WebRequestCycle) WebRequestCycle.get();
+    if(requestCycle != null) {
+      // Try an SSO authentication
+      HttpServletRequest request = requestCycle.getWebRequest().getHttpServletRequest();
+      HttpServletResponse response = requestCycle.getWebResponse().getHttpServletResponse();
+      try {
+        this.authenticator.logout(request, response);
+      } catch(ApplicationPermissionException e) {
+        // ignore
+      } catch(InvalidAuthenticationException e) {
+        // ignore
+      } catch(OperationFailedException e) {
+        // ignore
+      }
+    }
+  }
+
   private Properties loadCrowdProperties(File crowdProperties) {
     Properties clientProperties = new Properties();
     FileInputStream is = null;
     try {
       clientProperties.load(is = new FileInputStream(crowdProperties));
       return clientProperties;
-    } catch (FileNotFoundException e) {
+    } catch(FileNotFoundException e) {
       log.error("crowd.properties file {} does not exist.", crowdProperties.getAbsolutePath());
       return null;
-    } catch (IOException e) {
+    } catch(IOException e) {
       log.error("error reading crowd.properties file {}.", crowdProperties.getAbsolutePath());
       throw new RuntimeException(e);
     } finally {
       if(is != null) {
         try {
           is.close();
-        } catch(IOException e) {}
+        } catch(IOException e) {
+        }
       }
     }
   }
@@ -362,7 +410,7 @@ public class CrowdUserService implements IUserService {
    * {@code start} and {@code max} parameters)
    */
   private interface CrowdLoop<T> {
-    
+
     /**
      * Invokes the actual method with {@code start} and {@code BATCH_SIZE}
      */
@@ -373,7 +421,7 @@ public class CrowdUserService implements IUserService {
    * Users of a group
    */
   private final class UserLoop implements CrowdLoop<User> {
-    
+
     private final String groupName;
 
     UserLoop(String groupName) {
