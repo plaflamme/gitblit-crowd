@@ -241,11 +241,11 @@ public class CrowdUserService implements IUserService {
   }
 
   @Override
-  public char[] getCookie(UserModel user) {
+  public String getCookie(UserModel user) {
     // Return some value.
-    return StringUtils.getSHA1(user.getName()).toCharArray();
+    return StringUtils.getSHA1(user.getName());
   }
-  
+
   @Override
   public void logout(UserModel user) {
     doCrowdLogout();
