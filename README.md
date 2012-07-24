@@ -36,7 +36,7 @@ Refer to [Atlassian's documentation](http://confluence.atlassian.com/display/CRO
 SSO
 ---
 
-Things work except when logging out from GitBlit.
+Crowd's single sign-on works fine (login and logout) with versions 1.0-0 and up.
 
 Why can't I add/edit users and teams from GitBlit?
 --------------------------------------------------
