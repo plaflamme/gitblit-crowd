@@ -13,25 +13,7 @@ Features
 
 Using it
 --------
-Download the jar file from [here](https://github.com/plaflamme/gitblit-crowd/downloads) and put it in GitBlit's classpath:
-
-* GO: under the ``ext`` directory
-* WAR: under ``WEB-INF/lib``
-
-The edit GitBlit's configuration like so:
-
-	realm.userService=org.obiba.git.gitblit.CrowdUserService
-
-And configure it like so:
-
-	# Where to load crowd.propeties from. Default is crowd.properties.
-	crowd.properties=/path/to/your/crowd.properties
-	# A file where this extension stores repository permissions. Default is perms.xml.
-	crowd.permFile=perms.xml
-	# Optional list of groups that will have GitBlit admin privileges. Default is empty.
-	crowd.adminGroups=administrators gitblit-administrators
-
-Refer to [Atlassian's documentation](http://confluence.atlassian.com/display/CROWD/The+crowd.properties+File) to create the ``crowd.properties`` file. By default, the extension will look for ``crowd.properties``.
+Please refer to the project's page [here](http://plaflamme.github.com/gitblit-crowd/)
 
 SSO
 ---
