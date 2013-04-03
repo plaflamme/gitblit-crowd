@@ -254,6 +254,16 @@ public class CrowdUserService implements IUserService {
   // Everything else is not implemented
 
   @Override
+  public boolean updateTeamModels(List<TeamModel> arg0) {
+    return false;
+  }
+
+  @Override
+  public boolean updateUserModels(List<UserModel> arg0) {
+    return false;
+  }
+
+  @Override
   public boolean updateTeamModel(TeamModel model) {
     return false;
   }

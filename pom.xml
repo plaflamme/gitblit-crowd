@@ -7,7 +7,7 @@
 
   <groupId>org.obiba.git</groupId>
   <artifactId>gitblit-crowd</artifactId>
-  <version>1.0-0</version>
+  <version>1.2-0</version>
   <packaging>jar</packaging>
 
   <licenses>
@@ -28,8 +28,8 @@
     <maven.compiler.source>1.6</maven.compiler.source>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-    <gitblit.version>1.0.0</gitblit.version>
-    <crowd.version>2.4.0</crowd.version>
+    <gitblit.version>1.2.1</gitblit.version>
+    <crowd.version>2.5.3</crowd.version>
     <xstream.version>1.4.2</xstream.version>
     <slf4j.version>1.6.1</slf4j.version>
     <wicket.version>1.4.20</wicket.version>
@@ -41,7 +41,7 @@
       <artifactId>gitblit-manager</artifactId>
       <version>${gitblit.version}</version>
       <scope>system</scope>
-      <systemPath>${project.basedir}/lib/gitblit-manager-1.0.0.jar</systemPath>
+      <systemPath>${project.basedir}/lib/gitblit-manager-1.2.1.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>com.atlassian.crowd</groupId>
