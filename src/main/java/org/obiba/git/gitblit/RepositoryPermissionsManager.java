@@ -85,9 +85,16 @@ class RepositoryPermissionsManager {
 
    public void updateTeamModels(final Collection<TeamModel> models) {
       try {
-         mapper.writeValue(store, models);
-         this.teamModels.clear();
-         this.teamModels.addAll(models);
+         ArrayList<TeamModel> tmpModels = new ArrayList<>(teamModels);
+         tmpModels.forEach(t -> {
+            models.forEach(teamToSave -> {
+               if (t.name.equals(teamToSave.name)) {
+                  teamModels.remove(t);
+               }
+               teamModels.add(teamToSave);
+            } );
+         } );
+         mapper.writeValue(store, teamModels);
       } catch (JsonGenerationException e) {
          e.printStackTrace();
       } catch (JsonMappingException e) {
