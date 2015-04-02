@@ -32,69 +32,76 @@ import java.util.List;
  */
 class RepositoryPermissionsManager {
 
-    private final File store;
+   private final File store;
 
-    private final ObjectMapper mapper = new ObjectMapper();
+   private final ObjectMapper mapper = new ObjectMapper();
 
-    private final Collection<TeamModel> teamModels;
+   private final Collection<TeamModel> teamModels;
 
-    public Collection<TeamModel> getTeamModels() {
-        return teamModels;
-    }
+   RepositoryPermissionsManager(final File store) {
+      if (store == null)
+         throw new IllegalArgumentException("store cannot be null");
+      this.store = store;
+      this.teamModels = load();
 
-    RepositoryPermissionsManager(final File store) {
-        if (store == null)
-            throw new IllegalArgumentException("store cannot be null");
-        this.store = store;
-        this.teamModels = load();
+      SimpleModule module = new SimpleModule("TeamModelDeserializerModule", new Version(1, 0, 0, null));
+      module.addDeserializer(PersistableTeamModel.class, new TeamModelDeserializer());
+      mapper.registerModule(module);
 
-        SimpleModule module = new SimpleModule("TeamModelDeserializerModule", new Version(1, 0, 0, null));
-        module.addDeserializer(PersistableTeamModel.class, new TeamModelDeserializer());
-        mapper.registerModule(module);
+   }
 
-    }
+   public Collection<TeamModel> getTeamModels() {
+      return teamModels;
+   }
 
-    synchronized List<String> repoTeams(final String repository) {
-        List<String> teams = new ArrayList<String>();
-        for (TeamModel t : teamModels) {
-            if (t.hasRepositoryPermission(repository)) {
-                teams.add(t.name);
-            }
-            ;
-        }
-        return teams;
-    }
+   synchronized List<String> repoTeams(final String repository) {
+      List<String> teams = new ArrayList<String>();
+      for (TeamModel t : teamModels) {
+         if (t.hasRepositoryPermission(repository)) {
+            teams.add(t.name);
+         }
+         ;
+      }
+      return teams;
+   }
 
-    private Collection<TeamModel> load() {
-        if (store.exists()) {
-            try {
-                ArrayList<TeamModel> list = new ArrayList<TeamModel>();
-                list.addAll(Arrays.asList(mapper.readValue(store, PersistableTeamModel[].class)));
-                return list;
+   private Collection<TeamModel> load() {
+      if (store.exists()) {
+         try {
+            ArrayList<TeamModel> list = new ArrayList<TeamModel>();
+            list.addAll(Arrays.asList(mapper.readValue(store, PersistableTeamModel[].class)));
+            return list;
 
-            } catch (JsonParseException e) {
-                e.printStackTrace();
-            } catch (JsonMappingException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return new ArrayList<TeamModel>();
-    }
+         } catch (JsonParseException e) {
+            e.printStackTrace();
+         } catch (JsonMappingException e) {
+            e.printStackTrace();
+         } catch (IOException e) {
+            e.printStackTrace();
+         }
+      }
+      return new ArrayList<TeamModel>();
+   }
 
     public void updateTeamModels(final Collection<TeamModel> models) {
-        try {
-            mapper.writeValue(store, models);
-            this.teamModels.clear();
-            this.teamModels.addAll(models);
-        } catch (JsonGenerationException e) {
-            e.printStackTrace();
-        } catch (JsonMappingException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+      try {
+         ArrayList<TeamModel> tmpModels = new ArrayList<>(teamModels);
+         tmpModels.forEach(t -> {
+             models.forEach(teamToSave -> {
+                 if (t.name.equals(teamToSave.name)) {
+                     teamModels.remove(t);
+                 }
+                 teamModels.add(teamToSave);
+             });
+         });
+         mapper.writeValue(store, teamModels);
+      } catch (JsonGenerationException e) {
+         e.printStackTrace();
+      } catch (JsonMappingException e) {
+         e.printStackTrace();
+      } catch (IOException e) {
+         e.printStackTrace();
+      }
     }
 
 }
