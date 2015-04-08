@@ -3,6 +3,8 @@ GitBlit Crowd Integration
 
 Integrates [Atlassian Crowd](http://www.atlassian.com/software/crowd/) with [GitBlit](http://gitblit.com).
 
+[![Build Status](https://pingunaut.com/jenkins/buildStatus/icon?job=gitblit-crowd)](https://pingunaut.com/jenkins/job/gitblit-crowd/)
+
 Features
 --------
 
